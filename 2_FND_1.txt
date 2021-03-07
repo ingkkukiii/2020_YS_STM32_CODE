@@ -1,0 +1,38 @@
+[2_FND_1]
+- FND 에 일정 간격으로 0~F 까지 변화되는 프로그램을 작성한다.
+- F가 출력된 다음에는 다시 0으로 돌아간다.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+  unsigned char FND[]={0x3F, 0x06, 0x5B, 0x4F, 0x66,
+		       0x6D, 0x7D, 0x27, 0x7F, 0x6F,
+                       0x77, 0x7C, 0x39, 0x5E, 0x79,
+                       0x71};
+  
+  unsigned char i=0;
+  
+  RCC_APB2ENR |= 0x4; //GPIOA 에 클럭 넣기
+  
+  GPIOA_CRL = 0x33333333; //50Mhz output mode
+  
+  while(1){
+          GPIOA_BSRR = FND[i];
+          
+          delay(0xAFFFF);
+          
+          GPIOA_BRR = 0xFF;
+          if(++i>15) i = 0;
+  }
+}//end main

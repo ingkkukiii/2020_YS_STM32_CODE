@@ -1,0 +1,26 @@
+[1_LED_0]
+- 짝수 번째(2,4,6,8번째) LED 만 불이 들어오게 한다.
+- GPIOC로 출력을 변경
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+//
+#include "config.h"
+
+int main(void)
+{
+
+  RCC_APB2ENR |= 0x10;
+  
+  GPIOC_CRL = 0x33333333;
+  
+  GPIOC_BSRR |= 0xAA; 
+ 
+  while (1)  {
+  }  
+}//end main

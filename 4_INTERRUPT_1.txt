@@ -1,0 +1,36 @@
+ [4_Interrupt_1]
+- SWITCH module에 있는 8개의 버튼 (BT0~BT7)의 키 입력을 받아, 
+- 각각에 대응되는 LED(LED0~LED7)가 불이 켜지는 프로그램을 구현하라.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+#define GPIOA_IDR   (*(volatile unsigned *)0x40010808)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+  RCC_APB2ENR |= 0x14;
+  GPIOA_CRL = 0x44444444;  //input mode
+  GPIOC_CRL = 0x33333333;  //50Mhz output mode
+  
+  while(1)
+  {
+      GPIOC_BSRR = GPIOA_IDR;
+      delay(0xAFFFF);
+
+      GPIOA_BRR = 0xFF;
+      GPIOC_BRR = 0xFF;
+  }	
+}//end main

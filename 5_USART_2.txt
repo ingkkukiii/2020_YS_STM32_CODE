@@ -1,0 +1,94 @@
+[5_USART_2]
+- 컴퓨터의 키보드로 입력한 문자를 하이퍼터미널에 보여주는 프로그램을 작성하라.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+#define GPIOA_IDR   (*(volatile unsigned *)0x40010808)
+
+#define GPIOB_CRL   (*(volatile unsigned *)0x40010C00)
+#define GPIOB_BSRR   (*(volatile unsigned *)0x40010C10)
+#define GPIOB_BRR   (*(volatile unsigned *)0x40010C14)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+
+#define USART_SR(*(volatile unsigned *)0x40013800)
+#define USART_DR(*(volatile unsigned *)0x40013804)
+#define USART_BRR(*(volatile unsigned *)0x40013808)
+#define USART_CR1(*(volatile unsigned *)0x4001380C)
+#define USART_CR2(*(volatile unsigned *)0x40013810)
+#define USART_CR3(*(volatile unsigned *)0x40013814)
+#define USART_GTPR(*(volatile unsigned *)0x40013818)
+
+#define HSI_CLK(8000000L)
+#define BAUD_RATE(9600L)
+#define USARTDIV_I(HSI_CLK/(16L*BAUD_RATE))
+#define USARTDIV_F(HSI_CLK/(16.0*BAUD_RATE))
+#define BRR_MANTISSA(USARTDIV_I<<4)
+#define BRR_FRACTION((unsigned int)((USARTDIV_F - USARTDIV_I)*16))
+#define BRR_VAL (BRR_MANTISSA|BRR_FRACTION) 
+//
+
+#include "config.h"
+
+void delay(int cnt)
+{
+    for(;cnt!=0;cnt--);
+}
+void PutChar(unsigned char c)
+{
+    while((USART_SR&(1<<7))==0);
+    USART_DR=c;
+    if(c=='\n') PutChar('\r');
+}
+unsigned char GetChar(void)
+{
+   unsigned char data;
+   while(!(USART_SR & (1<<5)));
+   data=USART_DR;
+   return data;
+}
+int main(void)
+{
+  unsigned char byte;
+
+  RCC_APB2ENR |= (1<<14) | (1<<2);  //USART1에 클럭 넣기, A포트 이용
+ 
+  GPIOA_CRH = 0x000004B0;  //9:TX, 10:RX   
+ 
+  USART_CR1 = 0x0C;        //8-bit Word length, parity disable, Tx/Rx enable
+  USART_CR2 &=~(3<<12);    //USART CR2 STOP Bits(bits 13:12) Mask
+  USART_CR2 |=(0<<12);     //1 stop bit setting 
+  USART_CR3 &=~(3<<8);     //CTSE/RTSE Bits(bits 8:9) Mask
+  USART_CR3 |= (0<<8);     //HW Flow Control disable
+
+  USART_BRR = BRR_VAL;     //Baud rate : 9600
+  USART_CR1 |= (1<<13);    //USART 필수구문
+
+  while (1) 
+  {
+    byte=GetChar();
+    
+    switch(byte)
+    {
+    	case 0x0D :  //CR - ENTER KEY
+		PutChar('\n');	
+		PutChar('\n');
+		break;
+
+    	case 0x08 :  //BS - Backspace KEY
+		PutChar(byte);
+		PutChar(' ');
+ 		PutChar(byte);	
+		break;
+
+    	default :  //그 외 일반 문자
+		PutChar(byte);	
+		break;
+     }
+   }
+}//end main

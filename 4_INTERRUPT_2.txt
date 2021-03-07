@@ -1,0 +1,48 @@
+[4_Interrupt_2]
+- SWITCH module에 있는 8개의 버튼 (BT0~BT7)의 키 입력을 받아, 
+- 각각에 버튼 번호에 대응되는 수(0~7)를 FND 1자리로 표시되도록 프로그램을 구현하라.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+#define GPIOA_IDR   (*(volatile unsigned *)0x40010808)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+  unsigned char FND[]={0x3F, 0x06, 0x5B, 0x4F, 0x66,
+		       0x6D, 0x7D, 0x27, 0x7F, 0x6F,
+                       0x77};
+  
+  RCC_APB2ENR |= 0x14;
+  GPIOA_CRL = 0x44444444;
+  GPIOC_CRL = 0x33333333;
+  
+  while(1)
+  {
+    if((GPIOA_IDR & 0x01) != 0) GPIOC_BSRR = FND[0];
+    if((GPIOA_IDR & 0x02) != 0) GPIOC_BSRR = FND[1];
+    if((GPIOA_IDR & 0x04) != 0) GPIOC_BSRR = FND[2];
+    if((GPIOA_IDR & 0x08) != 0) GPIOC_BSRR = FND[3];
+    if((GPIOA_IDR & 0x10) != 0) GPIOC_BSRR = FND[4];
+    if((GPIOA_IDR & 0x20) != 0) GPIOC_BSRR = FND[5];
+    if((GPIOA_IDR & 0x40) != 0) GPIOC_BSRR = FND[6];
+    if((GPIOA_IDR & 0x80) != 0) GPIOC_BSRR = FND[7];
+
+    delay(0xAFFFF);
+    
+    GPIOA_BRR = 0xFF;
+    GPIOC_BRR = 0xFF;
+  }
+}//end main

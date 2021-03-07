@@ -1,0 +1,33 @@
+[1_LED_2]
+- 8개의 LED가 왼쪽으로 이동하면서 하나씩 켰다 꺼지는 프로그램을 작성하라.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+
+  int i =0;
+  
+  RCC_APB2ENR |= 0x4; //GPIOA 에 클럭 넣기 
+  GPIOA_CRL = 0x33333333; //50Mhz output mode
+ 
+  while (1)  {
+                
+              GPIOA_BSRR = (1<<i);
+              delay(0xAFFFF);
+              
+              GPIOA_BRR = (1<<i);
+              
+             if(++i>7)i=0;
+  } 
+}//end main

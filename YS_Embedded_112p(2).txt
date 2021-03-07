@@ -1,0 +1,52 @@
+112p 학교에서 한 버전
+#include "config.h"
+
+void delay(int cnt){
+  for(;cnt!=0;cnt--);
+}
+
+int main(void)
+{ 
+  unsigned char FND_DATA_TBL[]={0x3F, 0x06, 0x5B, 0x4F, 0x66,
+                                0x6D, 0x7D, 0x27, 0x7F, 0x6F,
+                                0x77, 0x7C, 0x39, 0x5E, 0x79, 0x71};
+
+  
+  RCC_APB2ENR |= 0x14;
+  GPIOA_CRL = 0x33334444;
+  GPIOC_CRL = 0x33333333;  
+  
+  
+  while (1)  {
+  
+    if((GPIOA_IDR&0x01)!=0){
+      
+      GPIOC_BSRR=FND_DATA_TBL[0];
+      GPIOA_BSRR =0x70;
+    }
+     
+    if((GPIOA_IDR&0x02)!=0){
+      
+     GPIOC_BSRR=FND_DATA_TBL[1];
+        GPIOA_BSRR =0xB0;
+    }  
+        
+    if((GPIOA_IDR&0x04)!=0){
+      
+      GPIOC_BSRR=FND_DATA_TBL[2];
+       GPIOA_BSRR =0xD0;
+    }  
+         
+         if((GPIOA_IDR&0x08)!=0) {
+           
+           GPIOC_BSRR=FND_DATA_TBL[3];
+          GPIOA_BSRR =0xE0;
+         }
+         
+    delay(0xAFFFF);
+         
+         GPIOA_BRR=0xFF;
+         GPIOC_BRR=0xFF;
+  }
+  
+}//end main

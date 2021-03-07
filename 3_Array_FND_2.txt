@@ -1,0 +1,89 @@
+ [3_Array_FND_2]
+- Array FND로 0~9999까지 증가되는 프로그램을 작성한다.
+- 9999 가 되면 다시 0으로 초기화된다.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+  unsigned char FND[]={0x3F, 0x06, 0x5B, 0x4F, 0x66,
+		       0x6D, 0x7D, 0x27, 0x7F, 0x6F,
+                       0x77};
+
+  unsigned int cnt=0,digit=0;
+
+  RCC_APB2ENR |= 0x14; //GPIOA,C 에 클럭 넣기
+
+  GPIOA_CRL = 0x33333333; //50Mhz output mode
+  GPIOC_CRL = 0x33333333; //50Mhz output mode
+  
+while(1)
+  {
+      if(cnt>=1000)
+      {
+        digit=cnt/1000;
+	GPIOC_BSRR = 0x0E;
+      	GPIOA_BSRR = FND[digit];
+
+      	delay(0xFFF);  
+      	
+	GPIOA_BRR = 0xFF;
+      	GPIOC_BRR = 0xFF;
+      }
+ 
+      if(cnt>=100)
+      {
+        digit=(cnt/100)%10;
+	GPIOC_BSRR = 0x0D;
+      	GPIOA_BSRR = FND[digit];
+
+      	delay(0xFFF);  
+      	
+	GPIOA_BRR = 0xFF;
+      	GPIOC_BRR = 0xFF;
+      }
+ 
+      if(cnt>=10)
+      {
+        digit=(cnt/10)%10;
+	GPIOC_BSRR = 0x0B;
+      	GPIOA_BSRR = FND[digit];
+
+      	delay(0xFFF);  
+      	
+	GPIOA_BRR = 0xFF;
+      	GPIOC_BRR = 0xFF;
+      }
+ 
+      if(cnt>0)
+      {
+        digit=cnt%10;
+	GPIOC_BSRR = 0x07;
+      	GPIOA_BSRR = FND[digit];
+
+      	delay(0xFFF);  
+      	
+	GPIOA_BRR = 0xFF;
+      	GPIOC_BRR = 0xFF;
+      }
+
+   cnt++;
+
+  if(cnt>9999) cnt = 0;
+  }
+}//end main

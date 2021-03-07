@@ -1,0 +1,16 @@
+72p
+#include "config.h"
+
+int main(void)
+{
+
+  RCC_APB2ENR |= 0x4;
+  
+  GPIOA_CRL = 0x33333333;
+  
+  GPIOA_BSRR |= 0x01; 
+ 
+  while (1)  {
+  }
+  
+}//end main

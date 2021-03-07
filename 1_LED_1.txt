@@ -1,0 +1,32 @@
+[1_LED_1]
+- 8개의 LED가 동시에 일정한 간격으로 켜졌다 꺼지는 것을 반복하는 프로그램을 작성하라.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+
+  RCC_APB2ENR |= 0x4; 
+  GPIOA_CRL = 0x33333333;
+ 
+  while (1)  {
+        
+              GPIOA_BSRR = 0x000000FF;
+              
+              delay(0xAFFFF);
+              
+              GPIOA_BSRR = 0x00FF0000;
+              
+              delay(0xAFFFF);
+  }  
+}//end main

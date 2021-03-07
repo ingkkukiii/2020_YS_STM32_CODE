@@ -1,0 +1,122 @@
+[7_Clock Control_1]
+- 시스템 클럭으로 HSI 8MHz를 사용한 경우와 PLL 72MHz를 사용한 경우를 LED 제어에 적용하여 그 속도를 비교하자
+
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_CRH   (*(volatile unsigned *)0x40010804) 
+#define GPIOA_IDR   (*(volatile unsigned *)0x40010808)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+
+#define GPIOB_CRL   (*(volatile unsigned *)0x40010C00)
+#define GPIOB_BSRR   (*(volatile unsigned *)0x40010C10)
+#define GPIOB_BRR   (*(volatile unsigned *)0x40010C14)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+
+#define USART_SR   (*(volatile unsigned *)0x40013800)
+#define USART_DR   (*(volatile unsigned *)0x40013804)
+#define USART_BRR   (*(volatile unsigned *)0x40013808)
+#define USART_CR1   (*(volatile unsigned *)0x4001380C)
+#define USART_CR2   (*(volatile unsigned *)0x40013810)
+#define USART_CR3   (*(volatile unsigned *)0x40013814)
+#define USART_GTPR   (*(volatile unsigned *)0x40013818)
+
+#define HSI_CLK (8000000L)
+#define PLL_CLK (72000000L)
+
+#define BAUD_RATE (9600L)
+#define USARTDIV_I  (HSI_CLK/(16L*BAUD_RATE))
+#define USARTDIV_F  (HSI_CLK/(16.0*BAUD_RATE))
+#define BRR_MANTISSA  (USARTDIV_I << 4)
+#define BRR_FRACTION  ((unsigned int)((USARTDIV_F - USARTDIV_I)*16))
+#define BRR_VAL (BRR_MANTISSA|BRR_FRACTION)
+
+
+#define RCC_BASE  (0x40021000)
+#define RCC_CR    (*(volatile unsigned *)(RCC_BASE+0x00))
+#define RCC_CFGR    (*(volatile unsigned *)(RCC_BASE+0x04))
+
+#define FLASH_BASE (0x40022000)
+#define FLASH_ACR    (*(volatile unsigned *)(FLASH_BASE+0x00))
+
+#define HSEStartUpTimeOut   ((unsigned int)0x500)
+//
+
+#include <stdio.h>
+#include "config.h"
+
+volatile unsigned int StartUpCnt = 0;
+
+void delay(int cnt)
+{
+	for(;cnt!=0;cnt--);
+}
+
+void RCC_Configuration(void){
+  //HSE Clock Enable : HSEON[16] bit -> 1
+  //HSEON[16] : HSE(High Speed External) Clock Enable Bit
+  RCC_CR |=(1<<16);
+  
+  //Wait for HSE Clock Ready : HSERDY[17] -> 1
+  //HSERDY[17] : HSE(High Speed External) Clock Ready Bit
+  while(!(RCC_CR & (1<<17)) && (StartUpCnt != HSEStartUpTimeOut)) StartUpCnt++;
+  
+  //Flash Memory Access Control 
+  FLASH_ACR |= 0x2;       //Latency : 72MHz  페이지 60
+  
+  // 프리스케일러 조정
+  //AHB => HPRE[3:0] -> Bit[7:4] : 0(SYSCLK not divided)
+  RCC_CFGR |= 0x00;   
+  //APB2 => PPRE2[2:0] -> Bit[13:11] : 0(HCLK not divided)
+  RCC_CFGR |= 0x00; 
+  //APB1 => PPRE1[2:0] -> Bit[10:8] : 4(HCLK divided by 2).... 36Mhz
+  RCC_CFGR |= 0x400;
+  
+  //PLLSRC[16] -> 1(HSE)
+  RCC_CFGR |=(1<<16);
+  
+  //PLLMUL[21:18] -> 0b0100(0x4) : PLL input clock x 9  ...72MHZ
+  RCC_CFGR |= (0x7 << 18);
+  
+  //PLL Enable : PLLON[24] bit -> 1
+  RCC_CR |= (1<<24);
+  
+  //Wait for PLL Ready : PLLRDY[25] bit -> 1  ...wait
+  while((RCC_CR & (1<<25))==0);
+  
+  //SW[1:0]:System Clock Switch bit -> 2 (PLL selected as system clock)
+  RCC_CFGR |= (2<<0);
+  
+  //Wait for PLL is used as system clock source
+  //SWS bit : System Clock Status
+  //SWS[1:0] : bit[3:2] -> 10(PLL used as system clock)
+  while((RCC_CFGR & (3<<2)) != 0x8);  
+}
+
+int main(void)
+{ 
+  int i=0;
+  
+  //---------------- clock 72MHz Init. -------------------
+  
+  //RCC_Configuration();
+  
+  //--------------------------------------------------------
+  
+  RCC_APB2ENR |= (1<<14)|(1<<2);  // USART, GPIOA 에 클럭 넣기
+  GPIOA_CRL = 0x33333333;
+ 
+  while(1) {
+      GPIOA_BSRR=(1<<i);
+      delay(0xAFFFF);
+      GPIOA_BRR=(1<<i);
+      if(++i>7) i=0;
+  }
+}//end main
+
+

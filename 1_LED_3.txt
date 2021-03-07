@@ -1,0 +1,39 @@
+[1_LED_3]
+- 8개의 LED가 왼쪽으로 이동하면서 하나씩 켰다 꺼진후 다시 오른쪽에서 왼쪽으로
+LED가 한개씩 켜졌다 꺼지기를 반복하는 프로그램을 작성하시오.
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+
+  int i=0, flag=0;
+  
+  RCC_APB2ENR |= 0x4; //GPIOA 에 클럭 넣기 
+  GPIOA_CRL = 0x33333333; //50Mhz output mode
+ 
+  while (1)  {
+                
+              GPIOA_BSRR = (1<<i);
+              delay(0xAFFFF);
+              
+              GPIOA_BRR = (1<<i);
+              
+              if(flag ==0){
+                       if(++i>6)flag=1;
+              }else{
+                       if(--i<1)flag=0;
+              }
+            
+  } 
+}//end main

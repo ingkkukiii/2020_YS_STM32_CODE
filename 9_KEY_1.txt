@@ -1,0 +1,274 @@
+[9_Key_Interrupt Control_1]
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_CRH   (*(volatile unsigned *)0x40010804)
+#define GPIOA_IDR   (*(volatile unsigned *)0x40010808)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+
+#define GPIOB_CRL   (*(volatile unsigned *)0x40010C00)
+#define GPIOB_BSRR   (*(volatile unsigned *)0x40010C10)
+#define GPIOB_BRR   (*(volatile unsigned *)0x40010C14)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+
+#define USART_SR   (*(volatile unsigned *)0x40013800)
+#define USART_DR   (*(volatile unsigned *)0x40013804)
+#define USART_BRR   (*(volatile unsigned *)0x40013808)
+#define USART_CR1   (*(volatile unsigned *)0x4001380C)
+#define USART_CR2   (*(volatile unsigned *)0x40013810)
+#define USART_CR3   (*(volatile unsigned *)0x40013814)
+#define USART_GTPR   (*(volatile unsigned *)0x40013818)
+
+#define HSI_CLK (8000000L)
+#define BAUD_RATE (9600L)
+#define USARTDIV_I  (HSI_CLK/(16L*BAUD_RATE))
+#define USARTDIV_F  (HSI_CLK/(16.0*BAUD_RATE))
+#define BRR_MANTISSA  (USARTDIV_I << 4)
+#define BRR_FRACTION  ((unsigned int)((USARTDIV_F - USARTDIV_I)*16))
+#define BRR_VAL (BRR_MANTISSA|BRR_FRACTION)
+
+#define IO_BASE  ((unsigned int)0x40000000)
+
+#define APB1_BASE IO_BASE
+#define APB2_BASE (IO_BASE + 0x10000)
+#define AHB_BASE (IO_BASE (IO_BASE + 0x20000)
+
+
+#define SCS_BASE  (0xE000E000)
+#define SYSTICK_BASE  (SCS_BASE+0x0010)
+#define NVIC_BASE (SCS_BASE+0x0100)
+#define SCB_BASE  (SCS_BASE+0x0D00)
+
+#define SCB_VTOR  (*(volatile unsigned *)(SCB_BASE+0x08))
+#define SCB_AIRCR (*(volatile unsigned *)(SCB_BASE+0x0C))
+#define SCB_SHPR3 (*(volatile unsigned *)(SCB_BASE+0x20))
+
+#define NVIC ((NVIC_TYPE*)NVIC_BASE)
+
+#define SYSTICK_CTRL  (*(volatile unsigned *)(SYSTICK_BASE+0x00))
+#define SYSTICK_LOAD  (*(volatile unsigned *)(SYSTICK_BASE+0x04))
+
+#define SYSTICK_VAL  (*(volatile unsigned *)(SYSTICK_BASE+0x08))
+#define SYSTICK_CALIB  (*(volatile unsigned *)(SYSTICK_BASE+0x0C))
+
+#define SysTick_IRQn    -1
+
+#define EXT0_IRQn 6
+#define EXT1_IRQn 7
+
+#define NVIC_PRIO_BITS  4
+#define SYS_CLOCK   HSI_CLK
+
+#define NVIC_VECTBL_FLASH   (0x08000000)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+typedef struct
+{
+  //0x100
+  volatile unsigned int ISER[8]; /*!< Interrupt Set Enable Register */
+  unsigned int RESERVED0[24];
+  //0x180
+  volatile unsigned int ICER[8]; /*!< Interrupt Clear Enable Register */
+  unsigned int RESERVED1[24]; 
+   //0x200
+  volatile unsigned int ISPR[8]; /*!< Interrupt Set Pending Register */
+  unsigned int RESERVED2[24];
+   //0x280
+  volatile unsigned int ICPR[8]; /*!< Interrupt Clear Pending Register */
+  unsigned int RESERVED3[24];
+   //0x300
+  volatile unsigned int IABR[8]; /*!< Interrupt Active bit Register */
+  unsigned int RESERVED4[24+32];
+   //0x400
+  volatile unsigned char IP[240]; /*!< Interrupt Priority Register, 8Bit wide */
+  unsigned int RESERVED5[644];
+  //0xE00
+  volatile unsigned int STIR; /*!< Software Trigger Interrupt Register */
+}NVIC_TYPE;
+typedef struct {
+  volatile unsigned int EVCR;
+  volatile unsigned int MAPR;
+  volatile unsigned int EXTICR[4];
+}AFIO_TypeDef;
+typedef struct {
+  volatile unsigned int IMR;
+  volatile unsigned int EMR;
+  volatile unsigned int RTSR;
+  volatile unsigned int FTSR;
+  volatile unsigned int SWIIER;
+  volatile unsigned int PR;
+}EXTI_TypeDef;
+#define AFIO_BASE (APB2_BASE +0x0000)
+#define EXTI_BASE (APB2_BASE +0x0400)
+#define AFIO ((AFIO_TypeDef *)AFIO_BASE)
+#define EXTI ((EXTI_TypeDef *)EXTI_BASE)
+//
+#include <stdio.h>
+#include "config.h"
+
+char flag=0;
+
+void delay(int cnt)
+{
+ for(;cnt!=0;cnt--);
+}
+
+void EXTI_ClearITPendingBit(unsigned int EXTI_Line){
+  EXTI->PR=EXTI_Line;
+}
+
+void EXTI0_IRQHandler(void){
+  unsigned int enablestatus=0;
+ 
+  flag=(flag!=0)?0:1;
+  enablestatus = EXTI->IMR & 0x00000001;
+ 
+  if(((EXTI->PR & 0x00000001) != (unsigned int)0) && (enablestatus !=(unsigned int)0))
+   
+  EXTI_ClearITPendingBit(1);
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+int main(void)
+{
+ 
+  RCC_APB2ENR |= (1<<4)|(1<<3)|(1<<0);  // GPIOC, GPIOA, AFIO 에 클럭 넣기
+ 
+  GPIOC_CRL = 0x33333333; // LED출력
+  GPIOB_CRL = 0x00000004; // LED출력
+ 
+  SCB_VTOR=NVIC_VECTBL_FLASH | (0x3000 & (unsigned int)0xFFFFF800);
+  SCB_AIRCR=((unsigned int)0x0700);
+  NVIC->ISER[EXT0_IRQn>>0x05]|=(unsigned int)0x01<<(EXT0_IRQn & (unsigned char)0x1F);
+  NVIC->IP[EXT0_IRQn]=0x00;
+  AFIO->EXTICR[0]|=0x01;
+ 
+  EXTI->IMR|=0x01;
+  EXTI->RTSR|=0x01;
+ 
+  while(1){
+    if (flag==1) GPIOC_BSRR|=0xFF;
+
+    if (flag==0) GPIOC_BRR|=0xFF; 
+  }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+[9_Key_Interrupt Control_3]
+- 외부인터럽트 PORTA
+
+#include <stdio.h>
+#include "config.h"
+
+char flag=0;
+
+void EXTI_ClearITPendingBit(unsigned int EXTI_Line)
+{
+  EXTI->PR=EXTI_Line;
+}
+
+void EXTI1_IRQHandler(void)
+{
+  unsigned int enablestatus=0;
+  
+  flag=(flag!=0)?0:1;
+  enablestatus = EXTI->IMR & 0x00000002;
+  
+  if(((EXTI->PR & 0x00000002) != (unsigned int)0) && (enablestatus !=(unsigned int)0))
+    
+    EXTI_ClearITPendingBit(2);
+} 
+
+void delay(int cnt)
+{
+	for(;cnt!=0;cnt--);
+}
+
+
+
+
+
+
+
+
+
+
+
+int main(void)
+{
+  
+  RCC_APB2ENR |= (1<<4) | (1<<2) | (1<<0);
+  GPIOC_CRL = 0x33333333;
+  GPIOA_CRL = 0x44444444;
+
+  SCB_VTOR=NVIC_VECTBL_FLASH | (0x3000) & (unsigned int)0xFFFFF80;
+  SCB_AIRCR=((unsigned int)0x0700);
+  NVIC->ISER[EXT1_IRQn>>0x05]|=(unsigned int)0x01<<(EXT1_IRQn & (unsigned char)0x1F);
+
+  NVIC->IP[EXT1_IRQn]=0x00;
+
+  AFIO->EXTICR[0]|=0x00;
+                                                      
+  EXTI->IMR|=0x02;
+  EXTI->RTSR|=0x02;
+    
+    while(1){
+      if (flag==1){ 
+        GPIOC_BSRR|=0xAA;
+        GPIOC_BRR |=0x55;
+      }
+ 
+      if (flag==0){ 
+        GPIOC_BSRR|=0x55;
+        GPIOC_BRR |=0xAA;
+      }
+    }
+}

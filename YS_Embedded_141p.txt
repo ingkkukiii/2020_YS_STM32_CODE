@@ -1,0 +1,81 @@
+141p
+#include "config.h"
+
+void delay(int cnt)
+{
+	for(;cnt != 0; cnt--);
+}
+
+unsigned char GetChar(void)
+{
+	unsigned char data;
+	while(!(USART_SR &(1<<5)));
+	data = USART_DR;
+	return data;
+}
+
+void PutChar(unsigned char c)
+{
+	while((USART_SR &(1<<7)) == 0);
+	USART_DR = c;
+}
+
+coid Puts(unsigned char *str)
+{
+	while(*str)
+	{
+	   PutChar(*str);
+	}
+}
+
+int main(void)
+{
+	unsigned char byte;
+	int i = 0;4
+ 
+	RCC_APB2ENR |= (1<<14) | (1<<2) | (1<<4);
+ 	GPIOC_CRL = 0x33333333;
+
+	GPIOA_CRH = 0x000004B0;
+
+	USART_CR1 = 0x0C;
+
+	USART_CR2 &= ~(3<<12);
+	USART_CR2 |= (0<<12);
+
+	USART_CR3 &= ~(3<<8);
+	USART_CR3 |= (0<<8);
+
+	USART_BRR = BRR_VAL;
+	USART_CR1 |= (1<<13);
+
+	Puts("1. LED 동시 점등 TEST\n\r");
+	Puts("2. LED 순차 점등 TEST\n\r");
+	Puts("Input number(1-2)\n\r");
+
+	while(1)
+	{
+		byte = GetChar();
+
+		PutChar(byte);
+
+		if(byre == '1')
+		{
+			GPIOC_BSRR = 0xFF;
+			delay(0xAFFFF);
+
+			GPIOC_BRR = 0xFF;
+			delay(0xAFFFF);
+		}
+
+		else if(byte == '2')
+		{
+			GPIOC_BSRR = (1<<i);
+			delay(0xAFFFF);
+
+			GPIOC_BRR = (1<<i);
+
+			if(++i > 7) i = 0;
+		}
+	}
+}//end main

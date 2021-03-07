@@ -1,0 +1,169 @@
+[8_Interrupt Control_1]
+- SysTick 인터럽트를 이용하여 정확한 ms 단위의 지연을 줄 수 있도록 구현하되, 
+‘YEONSUNG UNIVERSITY'를 출력하고 5초 있다가 사용자 입력을 받을 수 있도록 하라.
+
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_CRH   (*(volatile unsigned *)0x40010804) 
+#define GPIOA_IDR   (*(volatile unsigned *)0x40010808)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+
+#define GPIOB_CRL   (*(volatile unsigned *)0x40010C00)
+#define GPIOB_BSRR   (*(volatile unsigned *)0x40010C10)
+#define GPIOB_BRR   (*(volatile unsigned *)0x40010C14)
+
+#define GPIOC_CRL   (*(volatile unsigned *)0x40011000)
+#define GPIOC_BSRR   (*(volatile unsigned *)0x40011010)
+#define GPIOC_BRR   (*(volatile unsigned *)0x40011014)
+
+#define USART_SR   (*(volatile unsigned *)0x40013800)
+#define USART_DR   (*(volatile unsigned *)0x40013804)
+#define USART_BRR   (*(volatile unsigned *)0x40013808)
+#define USART_CR1   (*(volatile unsigned *)0x4001380C)
+#define USART_CR2   (*(volatile unsigned *)0x40013810)
+#define USART_CR3   (*(volatile unsigned *)0x40013814)
+#define USART_GTPR   (*(volatile unsigned *)0x40013818)
+
+#define HSI_CLK (8000000L)
+#define BAUD_RATE (9600L)
+#define USARTDIV_I  (HSI_CLK/(16L*BAUD_RATE))
+#define USARTDIV_F  (HSI_CLK/(16.0*BAUD_RATE))
+#define BRR_MANTISSA  (USARTDIV_I << 4)
+#define BRR_FRACTION  ((unsigned int)((USARTDIV_F - USARTDIV_I)*16))
+#define BRR_VAL (BRR_MANTISSA|BRR_FRACTION)
+
+#define SCS_BASE  (0xE000E000)
+#define SYSTICK_BASE  (SCS_BASE+0x0010)
+#define NVIC_BASE (SCS_BASE+0x0100)
+#define SCB_BASE  (SCS_BASE+0x0D00)
+
+#define SCB_VTOR  (*(volatile unsigned *)(SCB_BASE+0x08))
+#define SCB_SHPR3 (*(volatile unsigned *)(SCB_BASE+0x20))
+
+#define SYSTICK_CTRL  (*(volatile unsigned *)(SYSTICK_BASE+0x00))
+#define SYSTICK_LOAD  (*(volatile unsigned *)(SYSTICK_BASE+0x04))
+#define SYSTICK_VAL  (*(volatile unsigned *)(SYSTICK_BASE+0x08))
+#define SYSTICK_CALIB  (*(volatile unsigned *)(SYSTICK_BASE+0x0C))
+
+#define SysTick_IRQn    -1
+#define NVIC_PRIO_BITS  4
+
+#define SYS_CLOCK   HSI_CLK
+
+#define NVIC_FLASH   (0x08000000)
+//
+
+#include <stdio.h>
+#include "config.h"
+
+volatile unsigned int SysTick;
+
+void delay(int cnt)
+{
+	for(;cnt!=0;cnt--);
+}
+
+void SysTick_Handler(void)
+{
+    SysTick--;
+}
+
+void delay_ms(volatile unsigned int ms)
+{
+  SysTick = ms;
+  while(SysTick != 0);
+}
+
+void PutChar(unsigned char c){
+  while((USART_SR & (1<<7))==0);
+  USART_DR=c;
+}
+
+unsigned char GetChar(void) {
+  unsigned char data;
+  
+  while(!(USART_SR & (1<<5)));
+  data=USART_DR;
+  return data;
+}
+
+void Puts(unsigned char *str)
+{
+  while(*str) {
+    PutChar(*str);
+    str++;
+  }
+}
+
+void Gets(unsigned char *buff)
+{
+  unsigned char data;
+  
+  while(1) {
+    data = GetChar();
+    if(data == '\r' || data == '\n') break;
+    *buff = data;
+    buff++;
+  }
+  *buff = '\0';
+}
+
+int main(void)
+{ 
+  unsigned char byte;
+  unsigned int ticks;
+  
+  RCC_APB2ENR |= (1<<14)|(1<<2)|(1<<0);  // USART, GPIOA, AFIO 에 클럭 넣기
+  
+  GPIOA_CRH = 0x000004B0; // 9:TX , 10:RX
+  
+  USART_CR1 = 0x0C; // 8-bit Word length, parity disable, Tx/Rx enable
+  USART_CR2 &=~(3<<12);  // USART CR2 STOP Bits(bits 13:12) Mask
+  USART_CR2 |=(0<<12); // 1 stop bit setting
+ 
+  USART_CR3 &=~(3<<8); // CTSE/RTSE Bits(bits 8:9) Mask
+  USART_CR3 |= (0<<8); //HW Flow Control disable
+   
+  USART_BRR = BRR_VAL; //Baud rate : 9600
+  
+  USART_CR1 |=(1<<13);
+  //-----------------------------
+  
+  SCB_VTOR=NVIC_FLASH | (0x3000); // & (unsigned int)0xFFFFF80);
+  
+  ticks=SYS_CLOCK/1000;
+  SYSTICK_LOAD=ticks-1;
+  SCB_SHPR3=0xf0000000;
+    //((((1<<4)-1) << (8 - 4)) & 0xff); 
+  SYSTICK_VAL=0x00;
+  SYSTICK_CTRL = (1<<2) | (1<<1) | (1<<0);
+  
+  Puts("YEONSUNG UNIVERSITY\n");
+  delay_ms(5000);
+  
+  PutChar('\r');
+
+  while(1) {
+      byte=GetChar();
+    
+      switch(byte)
+      {
+        case 0x0D : 
+          PutChar('\n');
+          PutChar('\r');
+          break;
+        case 0x08 : 
+          PutChar(byte);
+          PutChar(' ');
+          PutChar(byte);
+          break;
+        default :
+          PutChar(byte);
+          break;
+      }
+  }
+}//end main
+

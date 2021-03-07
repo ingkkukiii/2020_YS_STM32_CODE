@@ -1,0 +1,22 @@
+[2_FND_0]
+- FND로 A를 출력해본다. 
+//
+#define RCC_APB2ENR (*(volatile unsigned *)0x40021018)
+
+#define GPIOA_CRL   (*(volatile unsigned *)0x40010800)
+#define GPIOA_BSRR   (*(volatile unsigned *)0x40010810)
+#define GPIOA_BRR   (*(volatile unsigned *)0x40010814)
+//
+#include "config.h"
+
+void delay(int cnt)
+{
+  for(;cnt!=0;cnt--);
+}
+int main(void)
+{
+  RCC_APB2ENR |= 0x4; //GPIOA 에 클럭 넣기
+  GPIOA_CRL = 0x33333333; //50Mhz output mode
+  
+  GPIOA_BSRR |= 0x06; //FND 로 A 출력하기 
+}//end main
